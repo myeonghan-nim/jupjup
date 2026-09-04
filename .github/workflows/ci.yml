@@ -17,4 +17,4 @@ jobs:
       - name: Build
         env:
           CGO_ENABLED: "1"
-        run: go build -trimpath -ldflags "-H windowsgui -s -w -extldflags=-Wl,--subsystem,windows -X main.version=ci" -o mabinogi-rice-collector.exe .
+        run: go build -trimpath -ldflags "-H windowsgui -s -w -extldflags=-Wl,--subsystem,windows -X main.version=ci" -o jupjup.exe .

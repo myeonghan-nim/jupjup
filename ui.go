@@ -16,11 +16,11 @@ import (
 	"fyne.io/fyne/v2/widget"
 	"github.com/zalando/go-keyring"
 
-	"github.com/myeonghan-nim/mabinogi-rice-collector/internal/core"
+	"jupjup/internal/core"
 )
 
 const (
-	keyringService  = "mabinogi-rice-collector"
+	keyringService  = "jupjup"
 	keyringUser     = "nexon-api-key"
 	prefItems       = "items"
 	prefInterval    = "intervalSeconds"
@@ -48,7 +48,7 @@ type ui struct {
 
 func newUI(a fyne.App) *ui {
 	u := &ui{app: a}
-	u.win = a.NewWindow("마비노기 쌀 콜렉터 " + version)
+	u.win = a.NewWindow("줍줍 알리미 " + version)
 	u.items = a.Preferences().StringListWithFallback(prefItems, nil)
 
 	u.status = widget.NewLabel(statusStopped)
@@ -117,7 +117,7 @@ func (u *ui) setupTray() {
 	}
 	quit := fyne.NewMenuItem("종료", nil) // IsQuit — Fyne이 영어 "Quit"을 자동 추가하지 않게 한국어로 명시
 	quit.IsQuit = true
-	desk.SetSystemTrayMenu(fyne.NewMenu("마비노기 쌀 콜렉터",
+	desk.SetSystemTrayMenu(fyne.NewMenu("줍줍 알리미",
 		fyne.NewMenuItem("열기", func() { u.win.Show() }),
 		fyne.NewMenuItemSeparator(),
 		quit,
@@ -164,7 +164,7 @@ func (u *ui) startMonitoring() {
 		},
 		OnAlert: func(item string, next, lowest int64) {
 			text := core.AlertText(item, next, lowest)
-			u.app.SendNotification(fyne.NewNotification("마비노기 쌀 콜렉터", text))
+			u.app.SendNotification(fyne.NewNotification("줍줍 알리미", text))
 			fyne.Do(func() { u.appendLog(text) })
 		},
 		OnAuthError: func() {

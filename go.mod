@@ -1,4 +1,4 @@
-module github.com/myeonghan-nim/mabinogi-rice-collector
+module jupjup
 
 go 1.25.0
 

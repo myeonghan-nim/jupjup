@@ -34,11 +34,11 @@ jobs:
         if: steps.tag.outputs.new_tag != ''
         env:
           CGO_ENABLED: "1"
-        run: go build -trimpath -ldflags "-H windowsgui -s -w -extldflags=-Wl,--subsystem,windows -X main.version=${{ steps.tag.outputs.new_version }}" -o mabinogi-rice-collector.exe .
+        run: go build -trimpath -ldflags "-H windowsgui -s -w -extldflags=-Wl,--subsystem,windows -X main.version=${{ steps.tag.outputs.new_version }}" -o jupjup.exe .
       - name: Checksum
         if: steps.tag.outputs.new_tag != ''
         shell: pwsh
-        run: '"{0}  mabinogi-rice-collector.exe" -f (Get-FileHash mabinogi-rice-collector.exe -Algorithm SHA256).Hash | Out-File -Encoding ascii SHA256SUMS.txt'
+        run: '"{0}  jupjup.exe" -f (Get-FileHash jupjup.exe -Algorithm SHA256).Hash | Out-File -Encoding ascii SHA256SUMS.txt'
       - name: Create release
         if: steps.tag.outputs.new_tag != ''
         uses: softprops/action-gh-release@v3
@@ -46,5 +46,5 @@ jobs:
           tag_name: ${{ steps.tag.outputs.new_tag }}
           body: ${{ steps.tag.outputs.changelog }}
           files: |
-            mabinogi-rice-collector.exe
+            jupjup.exe
             SHA256SUMS.txt
