@@ -1,4 +1,4 @@
-# 마비노기 쌀 콜렉터 (Mabinogi Rice Collector)
+# 줍줍 알리미 (JupJup)
 
 마비노기 경매장을 실시간으로 감시하는 **Windows 11 이상용 단독 실행 프로그램**입니다.
 
@@ -30,7 +30,7 @@
 
 ## 설치
 
-1. [Releases](../../releases) 페이지에서 최신 `mabinogi-rice-collector.exe`를 다운로드합니다.
+1. [Releases](../../releases) 페이지에서 최신 `jupjup.exe`를 다운로드합니다.
 2. 원하는 위치에 두고 실행합니다. 설치 과정이 없습니다.
 
 ### SmartScreen 경고가 뜬다면
@@ -40,7 +40,7 @@
 다운로드한 파일이 릴리스 원본과 같은지 확인하려면 PowerShell에서:
 
 ```powershell
-Get-FileHash .\mabinogi-rice-collector.exe -Algorithm SHA256
+Get-FileHash .\jupjup.exe -Algorithm SHA256
 ```
 
 출력된 해시를 릴리스에 첨부된 `SHA256SUMS.txt`와 비교하면 됩니다.
@@ -75,7 +75,7 @@ Get-FileHash .\mabinogi-rice-collector.exe -Algorithm SHA256
 - 아이템 이름은 부분일치로 검색됩니다. 예: `마나 허브`는 `축복받은 마나 허브`도 잡습니다.
 - 아이템 이름에 쉼표(`,`)는 사용할 수 없습니다 (넥슨 API의 다중 검색 구분자).
 - 아이템 목록 변경은 다음 감시 사이클부터 반영됩니다.
-- 오른쪽 로그 화면에서 조회 내역과 알림 기록(🚨)을 볼 수 있습니다. 로그는 `%APPDATA%\mabinogi-rice-collector\app.log`에도 남습니다.
+- 오른쪽 로그 화면에서 조회 내역과 알림 기록(🚨)을 볼 수 있습니다. 로그는 `%APPDATA%\jupjup\app.log`에도 남습니다.
 
 ### 알림 예시
 
@@ -90,7 +90,7 @@ Get-FileHash .\mabinogi-rice-collector.exe -Algorithm SHA256
 | 넥슨 API 키 | — | Windows 자격 증명 관리자에 저장. 변경할 때만 다시 입력 |
 | 폴링 주기(초) | 60 | 감시 사이클 간격. 최소 1초 |
 
-일반 설정(아이템 목록, 주기)은 `%APPDATA%\fyne\com.github.myeonghan-nim.mabinogi-rice-collector\preferences.json`에 저장됩니다.
+일반 설정(아이템 목록, 주기)은 `%APPDATA%\fyne\jupjup\preferences.json`에 저장됩니다.
 
 ## API 제한 사항
 
@@ -136,14 +136,14 @@ go test ./internal/...
 
 ```bash
 # Windows에서
-go build -trimpath -ldflags "-H windowsgui -s -w -extldflags=-Wl,--subsystem,windows" -o mabinogi-rice-collector.exe .
+go build -trimpath -ldflags "-H windowsgui -s -w -extldflags=-Wl,--subsystem,windows" -o jupjup.exe .
 
 # WSL2/Linux에서 (mingw 없이 Docker로 — 이미지는 zig를 C 컴파일러로 사용)
 docker run --rm -v "$PWD":/app -w /app \
   -e CGO_ENABLED=1 -e GOOS=windows -e GOARCH=amd64 \
   -e CC="zig cc -target x86_64-windows-gnu" -e HOME=/tmp \
   fyneio/fyne-cross-images:windows \
-  go build -trimpath -ldflags "-H windowsgui -s -w -extldflags=-Wl,--subsystem,windows" -o mabinogi-rice-collector.exe .
+  go build -trimpath -ldflags "-H windowsgui -s -w -extldflags=-Wl,--subsystem,windows" -o jupjup.exe .
 ```
 
 아이콘/매니페스트는 `winres/`에서 [go-winres](https://github.com/tc-hib/go-winres)로 생성한 `rsrc_windows_amd64.syso`로 임베드됩니다.

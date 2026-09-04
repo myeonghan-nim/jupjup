@@ -20,7 +20,7 @@ func main() {
 	if f := setupLogFile(); f != nil {
 		defer f.Close()
 	}
-	a := app.NewWithID("com.github.myeonghan-nim.mabinogi-rice-collector")
+	a := app.NewWithID("jupjup")
 	a.SetIcon(fyne.NewStaticResource("icon.png", iconPNG))
 	newUI(a).run()
 }
@@ -31,7 +31,7 @@ func setupLogFile() *os.File {
 	if err != nil {
 		return nil
 	}
-	dir = filepath.Join(dir, "mabinogi-rice-collector")
+	dir = filepath.Join(dir, "jupjup")
 	if err := os.MkdirAll(dir, 0o700); err != nil {
 		return nil
 	}
