@@ -154,7 +154,7 @@ docker run --rm -v "$PWD":/app -w /app \
 main 브랜치에 푸시되면 GitHub Actions가:
 
 1. 테스트 실행
-2. [conventional commit](https://www.conventionalcommits.org/) 메시지로 semver 태그 생성 (`fix:` → patch, `feat:` → minor, 커밋 본문의 `BREAKING CHANGE:` 푸터 → major; `docs:`/`chore:` 는 릴리스 없음. `feat!:`의 `!` 표기는 인식되지 않으니 major는 푸터로)
+2. [conventional commit](https://www.conventionalcommits.org/) 메시지로 semver 태그 생성 (`fix:` → patch, `feat:` → minor, `feat!:`처럼 `!` 표기 → major; `docs:`/`chore:` 는 릴리스 없음)
 3. Windows exe 빌드 후 SHA-256 체크섬과 함께 GitHub Release에 첨부
 
 PR에는 테스트+빌드 검증(ci.yml)이 돌아갑니다.
