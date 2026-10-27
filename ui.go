@@ -24,7 +24,9 @@ const (
 	keyringUser     = "nexon-api-key"
 	prefItems       = "items"
 	prefInterval    = "intervalSeconds"
+	prefBargain     = "bargainPercent"
 	defaultInterval = 60
+	defaultBargain  = 10
 	maxLogLines     = 500
 
 	statusRunning = "상태: 감시 중"
@@ -159,6 +161,9 @@ func (u *ui) startMonitoring() {
 		Interval: func() time.Duration {
 			return time.Duration(u.app.Preferences().IntWithFallback(prefInterval, defaultInterval)) * time.Second
 		},
+		Threshold: func() int64 {
+			return int64(u.app.Preferences().IntWithFallback(prefBargain, defaultBargain))
+		},
 		OnLog: func(msg string) {
 			fyne.Do(func() { u.appendLog(msg) })
 		},
@@ -180,7 +185,7 @@ func (u *ui) startMonitoring() {
 	go mon.Run(ctx)
 	u.status.SetText(statusRunning)
 	u.toggle.SetText("감시 중지")
-	u.appendLog("가격 감시 시작")
+	u.appendLog("가격 감시 시작 (특가 기준 " + strconv.Itoa(u.app.Preferences().IntWithFallback(prefBargain, defaultBargain)) + "%)")
 }
 
 func (u *ui) stopMonitoring() {
@@ -248,9 +253,20 @@ func (u *ui) showSettings(startAfterSave bool) {
 		return nil
 	}
 
+	bargainEntry := widget.NewEntry()
+	bargainEntry.SetText(strconv.Itoa(u.app.Preferences().IntWithFallback(prefBargain, defaultBargain)))
+	bargainEntry.Validator = func(s string) error {
+		n, err := strconv.Atoi(strings.TrimSpace(s))
+		if err != nil || n < 1 || n > 99 {
+			return errors.New("1~99 사이의 정수를 입력해주세요")
+		}
+		return nil
+	}
+
 	formItems := []*widget.FormItem{
 		widget.NewFormItem("넥슨 API 키", keyEntry),
 		widget.NewFormItem("폴링 주기(초)", intervalEntry),
+		widget.NewFormItem("특가 기준(%)", bargainEntry),
 	}
 	var deleteCheck *widget.Check
 	if hasKey {
@@ -264,6 +280,9 @@ func (u *ui) showSettings(startAfterSave bool) {
 		}
 		if n, err := strconv.Atoi(strings.TrimSpace(intervalEntry.Text)); err == nil && n >= 1 {
 			u.app.Preferences().SetInt(prefInterval, n)
+		}
+		if n, err := strconv.Atoi(strings.TrimSpace(bargainEntry.Text)); err == nil && n >= 1 && n <= 99 {
+			u.app.Preferences().SetInt(prefBargain, n)
 		}
 		if deleteCheck != nil && deleteCheck.Checked {
 			if err := keyring.Delete(keyringService, keyringUser); err != nil {
