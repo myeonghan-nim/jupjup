@@ -8,18 +8,23 @@ import (
 
 func TestIsBargain(t *testing.T) {
 	cases := []struct {
-		lowest, next int64
-		want         bool
+		lowest, next, percent int64
+		want                  bool
 	}{
-		{1, 10, true},   // 10% 정확히
-		{2, 10, false},  // 초과
-		{15, 150, true}, // Python: 15 <= 15.0 (경계 포함)
-		{16, 150, false},
-		{100, 45000, true},
+		{1, 10, 10, true},   // 10% 정확히
+		{2, 10, 10, false},  // 초과
+		{15, 150, 10, true}, // Python: 15 <= 15.0 (경계 포함)
+		{16, 150, 10, false},
+		{100, 45000, 10, true},
+		{30, 150, 20, true}, // 20% 경계
+		{31, 150, 20, false},
+		{75, 150, 50, true}, // 50% 경계
+		{76, 150, 50, false},
+		{16, 150, 11, true}, // 기준 완화 → 기존 비특가가 특가로
 	}
 	for _, c := range cases {
-		if got := IsBargain(c.lowest, c.next); got != c.want {
-			t.Errorf("IsBargain(%d, %d) = %v, want %v", c.lowest, c.next, got, c.want)
+		if got := IsBargain(c.lowest, c.next, c.percent); got != c.want {
+			t.Errorf("IsBargain(%d, %d, %d) = %v, want %v", c.lowest, c.next, c.percent, got, c.want)
 		}
 	}
 }
@@ -43,10 +48,11 @@ func (f *fakeFetcher) FetchLowestTwo(ctx context.Context, keyword string) (int64
 func newTestMonitor(f Fetcher) (*Monitor, *[]string) {
 	alerts := &[]string{}
 	m := &Monitor{
-		Fetch:    f,
-		Items:    func() []string { return []string{"마나 허브"} },
-		Interval: func() time.Duration { return time.Hour },
-		OnLog:    func(string) {},
+		Fetch:     f,
+		Items:     func() []string { return []string{"마나 허브"} },
+		Interval:  func() time.Duration { return time.Hour },
+		Threshold: func() int64 { return 10 },
+		OnLog:     func(string) {},
 		OnAlert: func(item string, next, lowest int64) {
 			*alerts = append(*alerts, AlertText(item, next, lowest))
 		},

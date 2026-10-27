@@ -6,9 +6,9 @@ import (
 	"time"
 )
 
-// IsBargain은 특가 조건(최저가 ≤ 차순위가의 10%)을 정수 연산으로 판정한다.
-func IsBargain(lowest, next int64) bool {
-	return lowest*10 <= next
+// IsBargain은 특가 조건(최저가 ≤ 차순위가의 percent%)을 정수 연산으로 판정한다.
+func IsBargain(lowest, next, percent int64) bool {
+	return lowest*100 <= next*percent
 }
 
 // Fetcher는 아이템의 (최저가, 차순위가)를 가져온다. *Client가 구현한다.
@@ -22,6 +22,7 @@ type Monitor struct {
 	Fetch       Fetcher
 	Items       func() []string      // 매 사이클 호출 (GUI 편집은 다음 사이클부터 반영)
 	Interval    func() time.Duration // 매 사이클 호출 (설정 변경 즉시 반영)
+	Threshold   func() int64         // 특가 기준 % — 매 사이클 호출
 	OnLog       func(msg string)
 	OnAlert     func(item string, next, lowest int64)
 	OnAuthError func() // 401/403 — 호출자가 감시를 중단해야 한다
@@ -66,7 +67,7 @@ func (m *Monitor) cycle(ctx context.Context) {
 }
 
 func (m *Monitor) checkAlert(item string, lowest, next int64) {
-	if !IsBargain(lowest, next) {
+	if !IsBargain(lowest, next, m.Threshold()) {
 		delete(m.lastAlerted, item) // 특가 해제 → 재무장
 		return
 	}
