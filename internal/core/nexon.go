@@ -19,6 +19,27 @@ var (
 	ErrNotEnoughListings = errors.New("경매장 데이터 부족")
 )
 
+// Stage는 API 키 단계와 그 호출 한도다 (넥슨 Open API 애플리케이션 등록 화면의 허용량 표 기준).
+type Stage struct {
+	Name      string
+	PerSecond int
+	PerDay    int
+}
+
+var (
+	StageDev     = Stage{"개발 단계", 5, 1_000}
+	StageService = Stage{"서비스 단계", 500, 20_000_000}
+)
+
+// KeyStage는 키 접두사로 단계를 판별한다 (개발 test_, 서비스 live_).
+// 공식 문서에 명시된 규칙은 아니라서, live_가 아니면 한도가 낮은 개발 단계로 본다.
+func KeyStage(apiKey string) Stage {
+	if strings.HasPrefix(apiKey, "live_") {
+		return StageService
+	}
+	return StageDev
+}
+
 // Client는 넥슨 Open API 클라이언트다.
 type Client struct {
 	APIKey  string

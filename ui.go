@@ -20,14 +20,13 @@ import (
 )
 
 const (
-	keyringService  = "jupjup"
-	keyringUser     = "nexon-api-key"
-	prefItems       = "items"
-	prefInterval    = "intervalSeconds"
-	prefBargain     = "bargainPercent"
-	defaultInterval = 60
-	defaultBargain  = 10
-	maxLogLines     = 500
+	keyringService = "jupjup"
+	keyringUser    = "nexon-api-key"
+	prefItems      = "items"
+	prefInterval   = "intervalSeconds"
+	prefBargain    = "bargainPercent"
+	defaultBargain = 10
+	maxLogLines    = 500
 
 	statusRunning = "상태: 감시 중"
 	statusStopped = "상태: 중지됨"
@@ -152,15 +151,15 @@ func (u *ui) startMonitoring() {
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	u.cancel = cancel
+	stage := core.KeyStage(key)
 	mon := &core.Monitor{
 		Fetch: core.NewClient(key),
 		Items: func() []string {
 			// 방어 복사 — Preferences에 저장된 슬라이스는 UI 스레드와 공유된다
 			return append([]string(nil), u.app.Preferences().StringListWithFallback(prefItems, nil)...)
 		},
-		Interval: func() time.Duration {
-			return time.Duration(u.app.Preferences().IntWithFallback(prefInterval, defaultInterval)) * time.Second
-		},
+		Interval: func() time.Duration { return u.pollInterval(stage) },
+		Gap:      time.Second / time.Duration(stage.PerSecond),
 		Threshold: func() int64 {
 			return int64(u.app.Preferences().IntWithFallback(prefBargain, defaultBargain))
 		},
@@ -185,7 +184,14 @@ func (u *ui) startMonitoring() {
 	go mon.Run(ctx)
 	u.status.SetText(statusRunning)
 	u.toggle.SetText("감시 중지")
-	u.appendLog("가격 감시 시작 (특가 기준 " + strconv.Itoa(u.app.Preferences().IntWithFallback(prefBargain, defaultBargain)) + "%)")
+	u.appendLog("가격 감시 시작 (" + stage.Name + " 키, 주기 " + strconv.Itoa(int(u.pollInterval(stage)/time.Second)) + "초, 특가 기준 " + strconv.Itoa(u.app.Preferences().IntWithFallback(prefBargain, defaultBargain)) + "%)")
+}
+
+// pollInterval은 설정된 주기를, 미지정(0)이면 아이템 수와 키 단계의 일일 한도에 맞춘 자동 주기를 돌려준다.
+// 감시 고루틴에서도 매 사이클 호출된다.
+func (u *ui) pollInterval(stage core.Stage) time.Duration {
+	p := u.app.Preferences()
+	return core.PollInterval(p.Int(prefInterval), len(p.StringListWithFallback(prefItems, nil)), stage.PerDay)
 }
 
 func (u *ui) stopMonitoring() {
@@ -243,12 +249,18 @@ func (u *ui) showSettings(startAfterSave bool) {
 		keyEntry.PlaceHolder = "(저장됨 — 변경할 때만 입력)"
 	}
 	intervalEntry := widget.NewEntry()
-	intervalEntry.SetText(strconv.Itoa(u.app.Preferences().IntWithFallback(prefInterval, defaultInterval)))
+	intervalEntry.PlaceHolder = "비워두면 아이템 수·키 단계에 맞춰 자동"
+	if n := u.app.Preferences().Int(prefInterval); n > 0 {
+		intervalEntry.SetText(strconv.Itoa(n))
+	}
 	// Validator가 저장 버튼을 막는다 — 폼 다이얼로그는 콜백 전에 닫히므로 사후 검증으로는 늦다
 	intervalEntry.Validator = func(s string) error {
+		if strings.TrimSpace(s) == "" {
+			return nil // 미지정 → 자동
+		}
 		n, err := strconv.Atoi(strings.TrimSpace(s))
 		if err != nil || n < 1 {
-			return errors.New("1 이상의 정수를 입력해주세요")
+			return errors.New("1 이상의 정수를 입력하거나 비워두세요")
 		}
 		return nil
 	}
@@ -278,9 +290,8 @@ func (u *ui) showSettings(startAfterSave bool) {
 		if !ok {
 			return
 		}
-		if n, err := strconv.Atoi(strings.TrimSpace(intervalEntry.Text)); err == nil && n >= 1 {
-			u.app.Preferences().SetInt(prefInterval, n)
-		}
+		n, _ := strconv.Atoi(strings.TrimSpace(intervalEntry.Text)) // 빈 값 → 0 = 자동
+		u.app.Preferences().SetInt(prefInterval, n)
 		if n, err := strconv.Atoi(strings.TrimSpace(bargainEntry.Text)); err == nil && n >= 1 && n <= 99 {
 			u.app.Preferences().SetInt(prefBargain, n)
 		}
