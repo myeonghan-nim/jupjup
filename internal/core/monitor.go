@@ -11,6 +11,18 @@ func IsBargain(lowest, next, percent int64) bool {
 	return lowest*100 <= next*percent
 }
 
+// 자동 주기의 하한(초). 한도가 넉넉한 서비스 단계 키라도 이보다 자주 조회하지 않는다.
+const minAutoSeconds = 60
+
+// PollInterval은 폴링 주기를 정한다. seconds가 1 이상이면 그 값을 쓰고, 지정되지 않았으면(0 이하)
+// 아이템 수 × 하루 사이클 수가 일일 한도(perDay)를 넘지 않는 가장 짧은 주기(초 단위 올림)를 돌려준다.
+func PollInterval(seconds, itemCount, perDay int) time.Duration {
+	if seconds <= 0 {
+		seconds = max(minAutoSeconds, (itemCount*86400+perDay-1)/perDay)
+	}
+	return time.Duration(seconds) * time.Second
+}
+
 // Fetcher는 아이템의 (최저가, 차순위가)를 가져온다. *Client가 구현한다.
 type Fetcher interface {
 	FetchLowestTwo(ctx context.Context, keyword string) (lowest, next int64, err error)
@@ -22,6 +34,7 @@ type Monitor struct {
 	Fetch       Fetcher
 	Items       func() []string      // 매 사이클 호출 (GUI 편집은 다음 사이클부터 반영)
 	Interval    func() time.Duration // 매 사이클 호출 (설정 변경 즉시 반영)
+	Gap         time.Duration        // 한 사이클 안의 요청 사이 대기 (초당 한도 보호)
 	Threshold   func() int64         // 특가 기준 % — 매 사이클 호출
 	OnLog       func(msg string)
 	OnAlert     func(item string, next, lowest int64)
@@ -45,7 +58,13 @@ func (m *Monitor) Run(ctx context.Context) {
 }
 
 func (m *Monitor) cycle(ctx context.Context) {
-	for _, item := range m.Items() {
+	for i, item := range m.Items() {
+		if i > 0 {
+			select {
+			case <-ctx.Done():
+			case <-time.After(m.Gap):
+			}
+		}
 		if ctx.Err() != nil {
 			return
 		}

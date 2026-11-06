@@ -97,3 +97,19 @@ func TestFetchLowestTwoRateLimited(t *testing.T) {
 		t.Errorf("429 에러에 API 에러명 미포함: %v", err)
 	}
 }
+
+func TestKeyStage(t *testing.T) {
+	cases := []struct {
+		key  string
+		want Stage
+	}{
+		{"test_abcdef", StageDev},
+		{"live_abcdef", StageService},
+		{"abcdef", StageDev}, // 알 수 없는 형식 → 한도가 낮은 쪽으로
+	}
+	for _, c := range cases {
+		if got := KeyStage(c.key); got != c.want {
+			t.Errorf("KeyStage(%q) = %v, want %v", c.key, got, c.want)
+		}
+	}
+}

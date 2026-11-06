@@ -100,3 +100,46 @@ func TestMonitorRunStopsOnCancel(t *testing.T) {
 		t.Fatal("Run이 취소 후에도 종료되지 않음")
 	}
 }
+
+func TestPollIntervalUsesConfiguredSeconds(t *testing.T) {
+	if got := PollInterval(30, 5, StageDev.PerDay); got != 30*time.Second {
+		t.Errorf("PollInterval(30, 5, dev) = %v, want 30s", got)
+	}
+}
+
+func TestPollIntervalAutoStaysUnderDailyLimit(t *testing.T) {
+	cases := []struct {
+		items, perDay int
+		want          time.Duration
+	}{
+		{0, StageDev.PerDay, 60 * time.Second}, // 아이템이 모두 제거돼도 0초 대기(바쁜 루프)는 없어야 한다
+		{1, StageDev.PerDay, 87 * time.Second},
+		{2, StageDev.PerDay, 173 * time.Second},
+		{10, StageDev.PerDay, 864 * time.Second},
+		{10, StageService.PerDay, 60 * time.Second}, // 한도가 넉넉해도 최소 60초
+	}
+	for _, c := range cases {
+		got := PollInterval(0, c.items, c.perDay)
+		if got != c.want {
+			t.Errorf("PollInterval(0, %d, %d) = %v, want %v", c.items, c.perDay, got, c.want)
+		}
+		if perDay := c.items * 86400 / int(got/time.Second); perDay > c.perDay {
+			t.Errorf("아이템 %d개: 하루 %d건 — 한도 %d건 초과", c.items, perDay, c.perDay)
+		}
+	}
+}
+
+func TestMonitorCycleWaitsGapBetweenRequests(t *testing.T) {
+	f := &fakeFetcher{seq: [][2]int64{{40000, 45000}}}
+	m, _ := newTestMonitor(f)
+	m.Items = func() []string { return []string{"a", "b", "c"} }
+	m.Gap = 20 * time.Millisecond
+	start := time.Now()
+	m.cycle(context.Background())
+	if elapsed := time.Since(start); elapsed < 40*time.Millisecond {
+		t.Errorf("3개 조회에 %v — 요청 사이 간격 2회(40ms) 미만", elapsed)
+	}
+	if f.i != 3 {
+		t.Errorf("조회 %d회, want 3회", f.i)
+	}
+}
